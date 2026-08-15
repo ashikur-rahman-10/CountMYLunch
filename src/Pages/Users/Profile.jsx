@@ -1,8 +1,18 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, {
+    useContext,
+    useEffect,
+    useState,
+} from "react";
+
 import { AuthContext } from "../../Providers/AuthProviders";
 
+
 const Profile = () => {
+
     const { user } = useContext(AuthContext);
+
+
+    // States
 
     const [profile, setProfile] = useState(null);
 
@@ -12,6 +22,8 @@ const Profile = () => {
     const [formData, setFormData] = useState({
         employeeId: "",
         phone: "",
+        religion: "",
+        floor: "",
         departmentId: "",
         designationId: "",
     });
@@ -23,127 +35,222 @@ const Profile = () => {
     const [success, setSuccess] = useState("");
 
 
-    // =========================
     // Load Profile + Options
-    // =========================
 
     useEffect(() => {
+
         if (!user?.email) {
             return;
         }
 
+
         const loadData = async () => {
+
             try {
+
                 setLoading(true);
                 setError("");
 
-                // Get user profile
+
+        
+                // Get User Profile
+        
+
                 const userResponse = await fetch(
                     `http://localhost:5000/users/${user.email}`
                 );
 
+
                 if (!userResponse.ok) {
-                    throw new Error("Failed to load user profile");
+
+                    throw new Error(
+                        "Failed to load user profile"
+                    );
+
                 }
 
-                const userData = await userResponse.json();
+
+                const userData =
+                    await userResponse.json();
+
 
                 setProfile(userData);
 
+
+        
+                // Set Form Data
+        
+
                 setFormData({
-                    employeeId: userData.employeeId || "",
-                    phone: userData.phone || "",
-                    departmentId: userData.departmentId || "",
-                    designationId: userData.designationId || "",
+
+                    employeeId:
+                        userData.employeeId || "",
+
+                    phone:
+                        userData.phone || "",
+
+                    religion:
+                        userData.religion || "",
+
+                    floor:
+                        userData.floor || "",
+
+                    departmentId:
+                        userData.departmentId || "",
+
+                    designationId:
+                        userData.designationId || "",
+
                 });
 
 
-                // Get departments
-                const departmentResponse = await fetch(
-                    "http://localhost:5000/departments"
-                );
+        
+                // Get Departments
+        
+
+                const departmentResponse =
+                    await fetch(
+                        "http://localhost:5000/departments"
+                    );
+
 
                 if (!departmentResponse.ok) {
-                    throw new Error("Failed to load departments");
+
+                    throw new Error(
+                        "Failed to load departments"
+                    );
+
                 }
+
 
                 const departmentData =
                     await departmentResponse.json();
 
-                setDepartments(departmentData);
 
-
-                // Get designations
-                const designationResponse = await fetch(
-                    "http://localhost:5000/designations"
+                setDepartments(
+                    departmentData
                 );
 
+
+        
+                // Get Designations
+        
+
+                const designationResponse =
+                    await fetch(
+                        "http://localhost:5000/designations"
+                    );
+
+
                 if (!designationResponse.ok) {
-                    throw new Error("Failed to load designations");
+
+                    throw new Error(
+                        "Failed to load designations"
+                    );
+
                 }
+
 
                 const designationData =
                     await designationResponse.json();
 
-                setDesignations(designationData);
+
+                setDesignations(
+                    designationData
+                );
+
 
             } catch (error) {
+
                 console.error(error);
 
                 setError(
                     error.message ||
                     "Something went wrong while loading profile."
                 );
+
             } finally {
+
                 setLoading(false);
+
             }
+
         };
+
 
         loadData();
 
     }, [user?.email]);
 
 
-    // =========================
     // Handle Input Change
-    // =========================
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
 
-        setFormData((previousData) => ({
-            ...previousData,
-            [name]: value,
-        }));
+        const {
+            name,
+            value,
+        } = e.target;
+
+
+        setFormData(
+            (previousData) => ({
+                ...previousData,
+                [name]: value,
+            })
+        );
+
     };
 
 
-    // =========================
     // Submit Profile
-    // =========================
 
     const handleSubmit = async (e) => {
+
         e.preventDefault();
 
+
         if (!user?.email) {
-            setError("User information not found.");
+
+            setError(
+                "User information not found."
+            );
+
             return;
         }
 
+
         try {
+
             setSaving(true);
             setError("");
             setSuccess("");
 
+
+    
+            // Data to Backend
+    
+
             const updatedData = {
-                employeeId: formData.employeeId,
-                phone: formData.phone,
-                departmentId: formData.departmentId,
-                designationId: formData.designationId,
 
-                profileCompleted: true,
+                employeeId:
+                    formData.employeeId.trim(),
 
-                updatedAt: new Date(),
+                phone:
+                    formData.phone.trim(),
+
+                religion:
+                    formData.religion,
+
+                floor:
+                    formData.floor,
+
+                departmentId:
+                    formData.departmentId,
+
+                designationId:
+                    formData.designationId,
+
             };
 
 
@@ -153,35 +260,54 @@ const Profile = () => {
                     method: "PATCH",
 
                     headers: {
-                        "Content-Type": "application/json",
+                        "Content-Type":
+                            "application/json",
                     },
 
-                    body: JSON.stringify(updatedData),
+                    body:
+                        JSON.stringify(
+                            updatedData
+                        ),
                 }
             );
 
 
-            const data = await response.json();
+            const data =
+                await response.json();
+
 
             if (!response.ok) {
+
                 throw new Error(
                     data.message ||
                     "Failed to update profile."
                 );
+
             }
 
 
-            setProfile((previousProfile) => ({
-                ...previousProfile,
-                ...updatedData,
-            }));
+    
+            // Update Local Profile
+    
+
+            setProfile(
+                (previousProfile) => ({
+                    ...previousProfile,
+
+                    ...updatedData,
+
+                    profileCompleted: true,
+                })
+            );
 
 
             setSuccess(
                 "Profile updated successfully."
             );
 
+
         } catch (error) {
+
             console.error(error);
 
             setError(
@@ -190,18 +316,22 @@ const Profile = () => {
             );
 
         } finally {
+
             setSaving(false);
+
         }
+
     };
 
 
-    // =========================
     // Loading
-    // =========================
 
     if (loading) {
+
         return (
+
             <div>
+
                 <h1 className="text-2xl font-bold">
                     Profile
                 </h1>
@@ -210,22 +340,29 @@ const Profile = () => {
                     Manage your profile.
                 </p>
 
+
                 <div className="flex justify-center py-12">
+
                     <span className="loading loading-spinner loading-md"></span>
+
                 </div>
+
             </div>
+
         );
+
     }
 
 
-    // =========================
     // Page
-    // =========================
 
     return (
+
         <div>
 
-            {/* Page Header */}
+            {/* =========================
+                Page Header
+            ========================= */}
 
             <h1 className="text-2xl font-bold">
                 Profile
@@ -236,86 +373,136 @@ const Profile = () => {
             </p>
 
 
-            {/* Error */}
+            {/* =========================
+                Error
+            ========================= */}
 
             {error && (
+
                 <div className="alert alert-error mt-6">
-                    <span>{error}</span>
+
+                    <span>
+                        {error}
+                    </span>
+
                 </div>
+
             )}
 
 
-            {/* Success */}
+            {/* =========================
+                Success
+            ========================= */}
 
             {success && (
+
                 <div className="alert alert-success mt-6">
-                    <span>{success}</span>
+
+                    <span>
+                        {success}
+                    </span>
+
                 </div>
+
             )}
 
 
-            {/* Profile Card */}
+            {/* =========================
+                Profile Card
+            ========================= */}
 
             <div className="card bg-base-100 border mt-6 max-w-3xl">
 
                 <div className="card-body">
+
+
+                    {/* =========================
+                        Personal Information
+                    ========================= */}
 
                     <h2 className="card-title">
                         Personal Information
                     </h2>
 
 
-                    {/* Google Account Information */}
+                    {/* =========================
+                        Google Account
+                    ========================= */}
 
                     <div className="flex items-center gap-4 py-4 border-b">
 
                         {user?.photoURL ? (
+
                             <img
                                 src={user.photoURL}
                                 alt="Profile"
                                 className="w-14 h-14 rounded-full"
                             />
+
                         ) : (
+
                             <div className="avatar placeholder">
+
                                 <div className="bg-neutral text-neutral-content rounded-full w-14">
+
                                     <span className="text-xl">
+
                                         {user?.displayName
                                             ?.charAt(0)
                                             ?.toUpperCase()}
+
                                     </span>
+
                                 </div>
+
                             </div>
+
                         )}
 
+
                         <div>
+
                             <h3 className="font-semibold">
+
                                 {user?.displayName}
+
                             </h3>
 
                             <p className="text-sm text-base-content/60">
+
                                 {user?.email}
+
                             </p>
+
                         </div>
 
                     </div>
 
 
-                    {/* Form */}
+                    {/* =========================
+                        Form
+                    ========================= */}
 
                     <form
                         onSubmit={handleSubmit}
                         className="space-y-4 mt-4"
                     >
 
-                        {/* Name */}
+
+                        {/* =========================
+                            Name
+                        ========================= */}
 
                         <div>
 
                             <label className="label">
+
                                 <span className="label-text">
                                     Name
                                 </span>
+
                             </label>
+
 
                             <input
                                 type="text"
@@ -328,22 +515,30 @@ const Profile = () => {
                                 disabled
                             />
 
+
                             <p className="text-xs text-base-content/50 mt-1">
+
                                 Name is managed through your Google account.
+
                             </p>
 
                         </div>
 
 
-                        {/* Email */}
+                        {/* =========================
+                            Email
+                        ========================= */}
 
                         <div>
 
                             <label className="label">
+
                                 <span className="label-text">
                                     Email
                                 </span>
+
                             </label>
+
 
                             <input
                                 type="email"
@@ -359,20 +554,27 @@ const Profile = () => {
                         </div>
 
 
-                        {/* Employee ID */}
+                        {/* =========================
+                            Employee ID
+                        ========================= */}
 
                         <div>
 
                             <label className="label">
+
                                 <span className="label-text">
                                     Employee ID
                                 </span>
+
                             </label>
+
 
                             <input
                                 type="text"
                                 name="employeeId"
-                                value={formData.employeeId}
+                                value={
+                                    formData.employeeId
+                                }
                                 onChange={handleChange}
                                 placeholder="Enter employee ID"
                                 className="input input-bordered w-full"
@@ -382,20 +584,27 @@ const Profile = () => {
                         </div>
 
 
-                        {/* Phone */}
+                        {/* =========================
+                            Phone
+                        ========================= */}
 
                         <div>
 
                             <label className="label">
+
                                 <span className="label-text">
                                     Phone Number
                                 </span>
+
                             </label>
+
 
                             <input
                                 type="tel"
                                 name="phone"
-                                value={formData.phone}
+                                value={
+                                    formData.phone
+                                }
                                 onChange={handleChange}
                                 placeholder="01XXXXXXXXX"
                                 className="input input-bordered w-full"
@@ -405,19 +614,162 @@ const Profile = () => {
                         </div>
 
 
-                        {/* Department */}
+                        {/* =========================
+                            Religion
+                        ========================= */}
 
                         <div>
 
                             <label className="label">
+
+                                <span className="label-text">
+                                    Religion
+                                </span>
+
+                            </label>
+
+
+                            <select
+                                name="religion"
+                                value={
+                                    formData.religion
+                                }
+                                onChange={handleChange}
+                                className="select select-bordered w-full"
+                                required
+                            >
+
+                                <option value="">
+                                    Select religion
+                                </option>
+
+                                <option value="Muslim">
+                                    Muslim
+                                </option>
+
+                                <option value="Hindu">
+                                    Hindu
+                                </option>
+
+                                <option value="Christian">
+                                    Christian
+                                </option>
+
+                                <option value="Buddhist">
+                                    Buddhist
+                                </option>
+
+                                <option value="Other">
+                                    Other
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        {/* =========================
+                            Floor
+                        ========================= */}
+
+                        <div>
+
+                            <label className="label">
+
+                                <span className="label-text">
+                                    Floor
+                                </span>
+
+                            </label>
+
+
+                            <select
+                                name="floor"
+                                value={
+                                    formData.floor
+                                }
+                                onChange={handleChange}
+                                className="select select-bordered w-full"
+                                required
+                            >
+
+                                <option value="">
+                                    Select floor
+                                </option>
+
+                                <option value="1st Floor">
+                                    1st Floor
+                                </option>
+
+                                <option value="2nd Floor">
+                                    2nd Floor
+                                </option>
+
+                                <option value="3rd Floor">
+                                    3rd Floor
+                                </option>
+
+                                <option value="4th Floor">
+                                    4th Floor
+                                </option>
+
+                                <option value="5th Floor">
+                                    5th Floor
+                                </option>
+
+                                <option value="6th Floor">
+                                    6th Floor
+                                </option>
+
+                                <option value="7th Floor">
+                                    7th Floor
+                                </option>
+
+                                <option value="8th Floor">
+                                    8th Floor
+                                </option>
+
+                                <option value="9th Floor">
+                                    9th Floor
+                                </option>
+
+                                <option value="10th Floor">
+                                    10th Floor
+                                </option>
+
+                                <option value="11th Floor">
+                                    11th Floor
+                                </option>
+
+                                <option value="12th Floor">
+                                    12th Floor
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        {/* =========================
+                            Department
+                        ========================= */}
+
+                        <div>
+
+                            <label className="label">
+
                                 <span className="label-text">
                                     Department
                                 </span>
+
                             </label>
+
 
                             <select
                                 name="departmentId"
-                                value={formData.departmentId}
+                                value={
+                                    formData.departmentId
+                                }
                                 onChange={handleChange}
                                 className="select select-bordered w-full"
                                 required
@@ -427,14 +779,23 @@ const Profile = () => {
                                     Select department
                                 </option>
 
+
                                 {departments.map(
                                     (department) => (
+
                                         <option
-                                            key={department._id}
-                                            value={department._id}
+                                            key={
+                                                department._id
+                                            }
+                                            value={
+                                                department._id
+                                            }
                                         >
+
                                             {department.name}
+
                                         </option>
+
                                     )
                                 )}
 
@@ -443,19 +804,26 @@ const Profile = () => {
                         </div>
 
 
-                        {/* Designation */}
+                        {/* =========================
+                            Designation
+                        ========================= */}
 
                         <div>
 
                             <label className="label">
+
                                 <span className="label-text">
                                     Designation
                                 </span>
+
                             </label>
+
 
                             <select
                                 name="designationId"
-                                value={formData.designationId}
+                                value={
+                                    formData.designationId
+                                }
                                 onChange={handleChange}
                                 className="select select-bordered w-full"
                                 required
@@ -465,14 +833,23 @@ const Profile = () => {
                                     Select designation
                                 </option>
 
+
                                 {designations.map(
                                     (designation) => (
+
                                         <option
-                                            key={designation._id}
-                                            value={designation._id}
+                                            key={
+                                                designation._id
+                                            }
+                                            value={
+                                                designation._id
+                                            }
                                         >
+
                                             {designation.name}
+
                                         </option>
+
                                     )
                                 )}
 
@@ -481,14 +858,18 @@ const Profile = () => {
                         </div>
 
 
-                        {/* Meal Rate Information */}
+                        {/* =========================
+                            Meal Rate
+                        ========================= */}
 
                         {formData.designationId && (
+
                             <div className="bg-base-200 rounded-lg p-4">
 
                                 <p className="text-sm text-base-content/60">
                                     Current Meal Rate
                                 </p>
+
 
                                 <p className="text-xl font-bold mt-1">
 
@@ -507,15 +888,53 @@ const Profile = () => {
 
                                 </p>
 
+
                                 <p className="text-xs text-base-content/50 mt-1">
+
                                     Meal rate is determined by your designation.
+
                                 </p>
 
                             </div>
+
                         )}
 
 
-                        {/* Submit */}
+                        {/* =========================
+                            Profile Status
+                        ========================= */}
+
+                        <div className="bg-base-200 rounded-lg p-4">
+
+                            <div className="flex items-center justify-between">
+
+                                <span className="text-sm font-medium">
+                                    Profile Status
+                                </span>
+
+
+                                {profile?.profileCompleted ? (
+
+                                    <span className="badge badge-success">
+                                        Completed
+                                    </span>
+
+                                ) : (
+
+                                    <span className="badge badge-warning">
+                                        Incomplete
+                                    </span>
+
+                                )}
+
+                            </div>
+
+                        </div>
+
+
+                        {/* =========================
+                            Submit
+                        ========================= */}
 
                         <div className="pt-2">
 
@@ -526,17 +945,23 @@ const Profile = () => {
                             >
 
                                 {saving ? (
+
                                     <>
                                         <span className="loading loading-spinner loading-sm"></span>
+
                                         Saving...
                                     </>
+
                                 ) : (
+
                                     "Save Profile"
+
                                 )}
 
                             </button>
 
                         </div>
+
 
                     </form>
 
@@ -545,7 +970,10 @@ const Profile = () => {
             </div>
 
         </div>
+
     );
+
 };
+
 
 export default Profile;

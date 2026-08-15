@@ -1,8 +1,188 @@
-import React from 'react'
+import React, {
+    useContext,
+    useEffect,
+    useState,
+} from "react";
+import { AuthContext } from "../../Providers/AuthProviders";
 
 const UserDashboard = () => {
+    const { user } = useContext(AuthContext);
+
+    const [dashboard, setDashboard] =
+        useState(null);
+
+    const [loading, setLoading] =
+        useState(true);
+
+    const [mealLoading, setMealLoading] =
+        useState(false);
+
+    const [error, setError] =
+        useState("");
+
+    // Load dashboard
+    const loadDashboard = async () => {
+        if (!user?.email) return;
+
+        try {
+            setLoading(true);
+            setError("");
+
+            const response = await fetch(
+                `http://localhost:5000/dashboard/${user.email}`
+            );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Failed to load dashboard."
+                );
+            }
+
+            setDashboard(data);
+
+        } catch (error) {
+            console.error(error);
+            setError(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial dashboard load
+    useEffect(() => {
+        loadDashboard();
+    }, [user?.email]);
+
+    // Turn on meal
+    const handleMealOn = async () => {
+        try {
+            setMealLoading(true);
+            setError("");
+
+            const response = await fetch(
+                "http://localhost:5000/meals/on",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                    },
+                    body: JSON.stringify({
+                        email: user.email,
+                    }),
+                }
+            );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Failed to turn on meal."
+                );
+            }
+
+            await loadDashboard();
+
+        } catch (error) {
+            console.error(error);
+            setError(error.message);
+        } finally {
+            setMealLoading(false);
+        }
+    };
+
+    // Turn off meal
+    const handleMealOff = async () => {
+        if (!dashboard?.todayMeal?._id) {
+            return;
+        }
+
+        try {
+            setMealLoading(true);
+            setError("");
+
+            const response = await fetch(
+                `http://localhost:5000/meals/off/${dashboard.todayMeal._id}`,
+                {
+                    method: "PATCH",
+                }
+            );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message ||
+                    "Failed to turn off meal."
+                );
+            }
+
+            await loadDashboard();
+
+        } catch (error) {
+            console.error(error);
+            setError(error.message);
+        } finally {
+            setMealLoading(false);
+        }
+    };
+
+    // Format date
+    const formatDate = (date) => {
+        if (!date) return "-";
+
+        return new Date(date).toLocaleDateString(
+            "en-GB",
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            }
+        );
+    };
+
+    if (loading) {
+        return (
+            <div className="w-full flex justify-center items-center py-20">
+                <span className="loading loading-spinner loading-lg"></span>
+            </div>
+        );
+    }
+
+    if (!dashboard) {
+        return (
+            <div className="alert alert-error">
+                <span>
+                    Failed to load dashboard.
+                </span>
+            </div>
+        );
+    }
+
+    const {
+        user: dashboardUser,
+        todayMeal,
+        monthlyMealCount,
+        monthlyBill,
+        currentBalance,
+        recentMeals,
+        recentPayments,
+    } = dashboard;
+
+    const mealIsOn =
+        todayMeal?.status === "on";
+
+    const profileCompleted =
+        dashboardUser?.profileCompleted;
+
     return (
-     
         <div className="w-full">
 
             {/* Page Header */}
@@ -16,78 +196,163 @@ const UserDashboard = () => {
                 </p>
             </div>
 
+            {/* Error Message */}
+            {error && (
+                <div className="alert alert-error mb-5">
+                    <span>{error}</span>
+                </div>
+            )}
+
+            {/* Profile Warning */}
+            {!profileCompleted && (
+                <div className="alert alert-warning mb-5">
+                    <div>
+                        <h3 className="font-bold">
+                            Profile incomplete
+                        </h3>
+
+                        <p className="text-sm">
+                            Complete your profile before turning on your meal.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
 
                 {/* Today's Meal */}
                 <div className="card bg-base-100 border">
                     <div className="card-body p-4 sm:p-5">
+
                         <p className="text-sm text-base-content/60">
                             Today's Meal
                         </p>
 
                         <h2 className="text-2xl sm:text-3xl font-bold">
-                            1
+                            {mealIsOn ? "1" : "0"}
                         </h2>
 
-                        <p className="text-sm text-success">
-                            Meal counted
+                        <p
+                            className={`text-sm ${
+                                mealIsOn
+                                    ? "text-success"
+                                    : "text-base-content/60"
+                            }`}
+                        >
+                            {mealIsOn
+                                ? "Meal counted"
+                                : "No meal counted"}
                         </p>
+
                     </div>
                 </div>
 
                 {/* Meal Status */}
                 <div className="card bg-base-100 border">
                     <div className="card-body p-4 sm:p-5">
+
                         <p className="text-sm text-base-content/60">
                             Meal Status
                         </p>
 
-                        <h2 className="text-2xl font-bold text-success">
-                            ON
+                        <h2
+                            className={`text-2xl font-bold ${
+                                mealIsOn
+                                    ? "text-success"
+                                    : "text-error"
+                            }`}
+                        >
+                            {mealIsOn
+                                ? "ON"
+                                : "OFF"}
                         </h2>
 
                         <p className="text-sm text-base-content/60">
-                            Active until you turn it off
+                            {mealIsOn
+                                ? "Today's meal is active"
+                                : "Today's meal is inactive"}
                         </p>
 
-                        <button className="btn btn-sm btn-error mt-2 w-full sm:w-fit">
-                            Turn Off Meal
-                        </button>
+                        {mealIsOn ? (
+                            <button
+                                onClick={
+                                    handleMealOff
+                                }
+                                disabled={
+                                    mealLoading
+                                }
+                                className="btn btn-sm btn-error mt-2 w-full sm:w-fit"
+                            >
+                                {mealLoading ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                ) : (
+                                    "Turn Off Meal"
+                                )}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={
+                                    handleMealOn
+                                }
+                                disabled={
+                                    mealLoading ||
+                                    !profileCompleted
+                                }
+                                className="btn btn-sm btn-success mt-2 w-full sm:w-fit"
+                            >
+                                {mealLoading ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                ) : (
+                                    "Turn On Meal"
+                                )}
+                            </button>
+                        )}
+
                     </div>
                 </div>
 
                 {/* Monthly Bill */}
                 <div className="card bg-base-100 border">
                     <div className="card-body p-4 sm:p-5">
+
                         <p className="text-sm text-base-content/60">
                             This Month Bill
                         </p>
 
                         <h2 className="text-2xl sm:text-3xl font-bold">
-                            ৳720
+                            ৳{monthlyBill}
                         </h2>
 
                         <p className="text-sm text-base-content/60">
-                            12 meals × ৳60
+                            {monthlyMealCount} meals
                         </p>
+
                     </div>
                 </div>
 
                 {/* Balance */}
                 <div className="card bg-base-100 border">
                     <div className="card-body p-4 sm:p-5">
+
                         <p className="text-sm text-base-content/60">
                             Current Balance
                         </p>
 
-                        <h2 className="text-2xl sm:text-3xl font-bold text-success">
-                            ৳280
+                        <h2
+                            className={`text-2xl sm:text-3xl font-bold ${
+                                currentBalance >= 0
+                                    ? "text-success"
+                                    : "text-error"
+                            }`}
+                        >
+                            ৳{currentBalance}
                         </h2>
 
                         <p className="text-sm text-base-content/60">
                             Available balance
                         </p>
+
                     </div>
                 </div>
 
@@ -116,23 +381,45 @@ const UserDashboard = () => {
                                 </thead>
 
                                 <tbody>
-                                    <tr>
-                                        <td>08 Aug 2026</td>
-                                        <td>Lunch</td>
-                                        <td>৳60</td>
-                                    </tr>
 
-                                    <tr>
-                                        <td>07 Aug 2026</td>
-                                        <td>Lunch</td>
-                                        <td>৳60</td>
-                                    </tr>
+                                    {recentMeals?.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan="3"
+                                                className="text-center text-base-content/50"
+                                            >
+                                                No meals found
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        recentMeals?.map(
+                                            (item) => (
+                                                <tr
+                                                    key={
+                                                        item._id
+                                                    }
+                                                >
+                                                    <td>
+                                                        {formatDate(
+                                                            item.date
+                                                        )}
+                                                    </td>
 
-                                    <tr>
-                                        <td>06 Aug 2026</td>
-                                        <td>Lunch</td>
-                                        <td>৳60</td>
-                                    </tr>
+                                                    <td>
+                                                        Lunch
+                                                    </td>
+
+                                                    <td>
+                                                        ৳
+                                                        {
+                                                            item.mealRate
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )
+                                    )}
+
                                 </tbody>
 
                             </table>
@@ -161,25 +448,49 @@ const UserDashboard = () => {
                                 </thead>
 
                                 <tbody>
-                                    <tr>
-                                        <td>01 Aug 2026</td>
-                                        <td>৳1000</td>
-                                        <td>
-                                            <span className="badge badge-success badge-sm">
-                                                Paid
-                                            </span>
-                                        </td>
-                                    </tr>
 
-                                    <tr>
-                                        <td>01 Jul 2026</td>
-                                        <td>৳500</td>
-                                        <td>
-                                            <span className="badge badge-success badge-sm">
-                                                Paid
-                                            </span>
-                                        </td>
-                                    </tr>
+                                    {recentPayments?.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan="3"
+                                                className="text-center text-base-content/50"
+                                            >
+                                                No payments found
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        recentPayments?.map(
+                                            (payment) => (
+                                                <tr
+                                                    key={
+                                                        payment._id
+                                                    }
+                                                >
+                                                    <td>
+                                                        {formatDate(
+                                                            payment.date
+                                                        )}
+                                                    </td>
+
+                                                    <td>
+                                                        ৳
+                                                        {
+                                                            payment.amount
+                                                        }
+                                                    </td>
+
+                                                    <td>
+                                                        <span className="badge badge-success badge-sm">
+                                                            {
+                                                                payment.status
+                                                            }
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )
+                                    )}
+
                                 </tbody>
 
                             </table>
@@ -191,8 +502,7 @@ const UserDashboard = () => {
             </div>
 
         </div>
+    );
+};
 
-    )
-}
-
-export default UserDashboard
+export default UserDashboard;

@@ -1,123 +1,265 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../Providers/AuthProviders";
 
+const API_URL = "http://localhost:5000";
+
 const MyMeal = () => {
-const { user } = useContext(AuthContext);
+    const { user } = useContext(AuthContext);
 
-const [profile, setProfile] = useState(null);
-const [loading, setLoading] = useState(true);
+    const [meal, setMeal] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
 
-useEffect(() => {
-if (!user?.email) return;
+    const loadTodayMeal = async () => {
+        if (!user?.email) return;
 
-fetch(`http://localhost:5000/users/${user.email}`)
-.then((res) => res.json())
-.then((data) => {
-setProfile(data);
-setLoading(false);
-})
-.catch((error) => {
-console.error(error);
-setLoading(false);
-});
-}, [user?.email]);
+        try {
+            setLoading(true);
 
-if (loading) {
-return (
-<div>
-    <h1 className="text-2xl font-bold">
-        My Meal
-    </h1>
+            const response = await fetch(
+                `${API_URL}/meals/today/${encodeURIComponent(
+                    user.email
+                )}`
+            );
 
-    <p className="text-base-content/60 mt-1">
-        Manage your meal.
-    </p>
+            const data = await response.json();
 
-    <div className="flex justify-center py-12">
-        <span className="loading loading-spinner"></span>
-    </div>
-</div>
-);
-}
+            if (data.success) {
+                setMeal(data.meal);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-return (
-<div>
+    useEffect(() => {
+        loadTodayMeal();
+    }, [user]);
 
-    {/* Page Header */}
+    const handleMealOn = async () => {
+        try {
+            setActionLoading(true);
 
-    <h1 className="text-2xl font-bold">
-        My Meal
-    </h1>
+            const response = await fetch(
+                `${API_URL}/meals/on`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        email: user.email,
+                    }),
+                }
+            );
 
-    <p className="text-base-content/60 mt-1">
-        Manage your meal.
-    </p>
+            const data = await response.json();
 
-    <p>Hello</p>
+            if (data.success) {
+                setMeal(data.meal);
+            } else {
+                alert(data.message);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setActionLoading(false);
+        }
+    };
 
+    const handleMealOff = async () => {
+        if (!meal?._id) return;
 
-    {/* Profile Incomplete */}
+        try {
+            setActionLoading(true);
 
-    {!profile?.profileCompleted && (
-    <div className="alert alert-warning mt-6">
+            const response = await fetch(
+                `${API_URL}/meals/off/${meal._id}`,
+                {
+                    method: "PATCH",
+                }
+            );
 
-        <div>
-            <h3 className="font-semibold">
-                Complete your profile first
-            </h3>
+            const data = await response.json();
 
-            <p className="text-sm">
-                You must complete your profile
-                before using the meal facility.
-            </p>
-        </div>
+            if (data.success) {
+                setMeal(data.meal);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setActionLoading(false);
+        }
+    };
 
-    </div>
-    )}
+    const isMealOn = meal?.status === "on";
 
+    return (
+        <div className="w-full">
 
-    {/* Meal Section */}
+            <div className="mb-5 sm:mb-6">
+                <h1 className="text-xl sm:text-2xl font-bold">
+                    My Meal
+                </h1>
 
-    {profile?.profileCompleted && (
-    <div className="card bg-base-100 border mt-6 max-w-xl">
-
-        <div className="card-body">
-
-            <h2 className="card-title">
-                Today's Meal
-            </h2>
-
-            <p className="text-base-content/60">
-                Your meal status will appear here.
-            </p>
-
-            <div className="divider"></div>
-
-            <div className="flex items-center justify-between">
-
-                <div>
-                    <p className="text-sm text-base-content/60">
-                        Meal Status
-                    </p>
-
-                    <p className="text-2xl font-bold text-success">
-                        ON
-                    </p>
-                </div>
-
-                <button className="btn btn-error">
-                    Turn Off
-                </button>
-
+                <p className="text-sm sm:text-base text-base-content/60 mt-1">
+                    Manage your meal for today.
+                </p>
             </div>
 
+            {loading ? (
+                <div className="flex justify-center py-20">
+                    <span className="loading loading-spinner loading-lg"></span>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                    <div className="card bg-base-100 border">
+                        <div className="card-body">
+
+                            <h2 className="card-title">
+                                Today's Lunch
+                            </h2>
+
+                            <div className="mt-4">
+
+                                <p className="text-sm text-base-content/60">
+                                    Meal Status
+                                </p>
+
+                                <h2
+                                    className={`text-4xl font-bold mt-1 ${
+                                        isMealOn
+                                            ? "text-success"
+                                            : "text-error"
+                                    }`}
+                                >
+                                    {isMealOn ? "ON" : "OFF"}
+                                </h2>
+
+                            </div>
+
+                            <div className="divider"></div>
+
+                            <div className="flex justify-between">
+                                <span>
+                                    Meal
+                                </span>
+
+                                <span className="font-semibold">
+                                    Lunch
+                                </span>
+                            </div>
+
+                            <div className="flex justify-between">
+                                <span>
+                                    Meal Rate
+                                </span>
+
+                                <span className="font-semibold">
+                                    ৳{meal?.mealRate || 60}
+                                </span>
+                            </div>
+
+                            <div className="mt-5">
+
+                                {isMealOn ? (
+                                    <button
+                                        onClick={handleMealOff}
+                                        disabled={actionLoading}
+                                        className="btn btn-error w-full"
+                                    >
+                                        {actionLoading ? (
+                                            <span className="loading loading-spinner loading-sm"></span>
+                                        ) : (
+                                            "Turn Off Meal"
+                                        )}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleMealOn}
+                                        disabled={actionLoading}
+                                        className="btn btn-success w-full"
+                                    >
+                                        {actionLoading ? (
+                                            <span className="loading loading-spinner loading-sm"></span>
+                                        ) : (
+                                            "Turn On Meal"
+                                        )}
+                                    </button>
+                                )}
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div className="card bg-base-100 border">
+                        <div className="card-body">
+
+                            <h2 className="card-title">
+                                Meal Information
+                            </h2>
+
+                            <div className="space-y-4 mt-4">
+
+                                <div>
+                                    <p className="text-sm text-base-content/60">
+                                        Date
+                                    </p>
+
+                                    <p className="font-semibold">
+                                        {new Date().toLocaleDateString(
+                                            "en-GB",
+                                            {
+                                                day: "2-digit",
+                                                month: "short",
+                                                year: "numeric",
+                                            }
+                                        )}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm text-base-content/60">
+                                        Meal Type
+                                    </p>
+
+                                    <p className="font-semibold">
+                                        Lunch
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm text-base-content/60">
+                                        Status
+                                    </p>
+
+                                    <span
+                                        className={`badge ${
+                                            isMealOn
+                                                ? "badge-success"
+                                                : "badge-error"
+                                        }`}
+                                    >
+                                        {isMealOn
+                                            ? "Active"
+                                            : "Inactive"}
+                                    </span>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            )}
+
         </div>
-
-    </div>
-    )}
-
-</div>
-);
+    );
 };
 
 export default MyMeal;
