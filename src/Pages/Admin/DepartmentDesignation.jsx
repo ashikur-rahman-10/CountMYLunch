@@ -8,12 +8,19 @@ const DepartmentDesignation = () => {
 
     const [departmentName, setDepartmentName] = useState("");
     const [designationName, setDesignationName] = useState("");
+    const [designationMealRate, setDesignationMealRate] = useState("");
+
+    const [editingDepartment, setEditingDepartment] = useState(null);
+    const [editingDesignation, setEditingDesignation] = useState(null);
+
+    const [editDepartmentName, setEditDepartmentName] = useState("");
+
+    const [editDesignationName, setEditDesignationName] = useState("");
+    const [editDesignationMealRate, setEditDesignationMealRate] =
+        useState("");
 
     const [loading, setLoading] = useState(true);
 
-    // =========================
-    // LOAD DATA
-    // =========================
     const loadData = async () => {
         try {
             setLoading(true);
@@ -39,10 +46,6 @@ const DepartmentDesignation = () => {
             const departmentData = await departmentResponse.json();
             const designationData = await designationResponse.json();
 
-            console.log("Department API:", departmentData);
-            console.log("Designation API:", designationData);
-
-            // Handle different possible API response formats
             if (Array.isArray(departmentData)) {
                 setDepartments(departmentData);
             } else if (Array.isArray(departmentData.departments)) {
@@ -76,9 +79,6 @@ const DepartmentDesignation = () => {
         loadData();
     }, []);
 
-    // =========================
-    // ADD DEPARTMENT
-    // =========================
     const addDepartment = async (e) => {
         e.preventDefault();
 
@@ -107,7 +107,6 @@ const DepartmentDesignation = () => {
             }
 
             setDepartmentName("");
-
             await loadData();
         } catch (error) {
             console.error("Add department error:", error);
@@ -115,15 +114,19 @@ const DepartmentDesignation = () => {
         }
     };
 
-    // =========================
-    // ADD DESIGNATION
-    // =========================
     const addDesignation = async (e) => {
         e.preventDefault();
 
         const name = designationName.trim();
+        const mealRate = Number(designationMealRate);
 
         if (!name) {
+            alert("Designation name is required.");
+            return;
+        }
+
+        if (!designationMealRate || mealRate <= 0) {
+            alert("Valid meal rate is required.");
             return;
         }
 
@@ -135,6 +138,7 @@ const DepartmentDesignation = () => {
                 },
                 body: JSON.stringify({
                     name,
+                    mealRate,
                 }),
             });
 
@@ -146,6 +150,7 @@ const DepartmentDesignation = () => {
             }
 
             setDesignationName("");
+            setDesignationMealRate("");
 
             await loadData();
         } catch (error) {
@@ -154,15 +159,10 @@ const DepartmentDesignation = () => {
         }
     };
 
-    // =========================
-    // TOGGLE DEPARTMENT
-    // =========================
     const toggleDepartment = async (department) => {
         try {
             const newStatus =
-                department.status === "active"
-                    ? "inactive"
-                    : "active";
+                department.status === "active" ? "inactive" : "active";
 
             const response = await fetch(
                 `${API_URL}/departments/${department._id}`,
@@ -191,15 +191,10 @@ const DepartmentDesignation = () => {
         }
     };
 
-    // =========================
-    // TOGGLE DESIGNATION
-    // =========================
     const toggleDesignation = async (designation) => {
         try {
             const newStatus =
-                designation.status === "active"
-                    ? "inactive"
-                    : "active";
+                designation.status === "active" ? "inactive" : "active";
 
             const response = await fetch(
                 `${API_URL}/designations/${designation._id}`,
@@ -228,9 +223,109 @@ const DepartmentDesignation = () => {
         }
     };
 
-    // =========================
-    // DELETE DEPARTMENT
-    // =========================
+    const startDepartmentEdit = (department) => {
+        setEditingDepartment(department._id);
+        setEditDepartmentName(department.name);
+    };
+
+    const cancelDepartmentEdit = () => {
+        setEditingDepartment(null);
+        setEditDepartmentName("");
+    };
+
+    const saveDepartmentEdit = async (id) => {
+        const name = editDepartmentName.trim();
+
+        if (!name) {
+            alert("Department name is required.");
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${API_URL}/departments/${id}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        name,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || data.success === false) {
+                alert(data.message || "Failed to update department");
+                return;
+            }
+
+            cancelDepartmentEdit();
+            await loadData();
+        } catch (error) {
+            console.error("Edit department error:", error);
+            alert("Something went wrong while updating department.");
+        }
+    };
+
+    const startDesignationEdit = (designation) => {
+        setEditingDesignation(designation._id);
+        setEditDesignationName(designation.name);
+        setEditDesignationMealRate(designation.mealRate || "");
+    };
+
+    const cancelDesignationEdit = () => {
+        setEditingDesignation(null);
+        setEditDesignationName("");
+        setEditDesignationMealRate("");
+    };
+
+    const saveDesignationEdit = async (id) => {
+        const name = editDesignationName.trim();
+        const mealRate = Number(editDesignationMealRate);
+
+        if (!name) {
+            alert("Designation name is required.");
+            return;
+        }
+
+        if (!editDesignationMealRate || mealRate <= 0) {
+            alert("Valid meal rate is required.");
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${API_URL}/designations/${id}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        name,
+                        mealRate,
+                    }),
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || data.success === false) {
+                alert(data.message || "Failed to update designation");
+                return;
+            }
+
+            cancelDesignationEdit();
+            await loadData();
+        } catch (error) {
+            console.error("Edit designation error:", error);
+            alert("Something went wrong while updating designation.");
+        }
+    };
+
     const deleteDepartment = async (id) => {
         const confirmDelete = window.confirm(
             "Are you sure you want to delete this department?"
@@ -262,9 +357,6 @@ const DepartmentDesignation = () => {
         }
     };
 
-    // =========================
-    // DELETE DESIGNATION
-    // =========================
     const deleteDesignation = async (id) => {
         const confirmDelete = window.confirm(
             "Are you sure you want to delete this designation?"
@@ -298,9 +390,6 @@ const DepartmentDesignation = () => {
 
     return (
         <div className="w-full">
-            {/* =========================
-                PAGE HEADER
-            ========================= */}
             <div className="mb-5 sm:mb-6">
                 <h1 className="text-xl sm:text-2xl font-bold">
                     Department & Designation
@@ -311,22 +400,13 @@ const DepartmentDesignation = () => {
                 </p>
             </div>
 
-            {/* =========================
-                MAIN GRID
-            ========================= */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-
-                {/* =========================
-                    DEPARTMENTS
-                ========================= */}
                 <div className="card bg-base-100 border">
                     <div className="card-body p-4 sm:p-5">
-
                         <h2 className="card-title text-base sm:text-lg">
                             Departments
                         </h2>
 
-                        {/* Add Department */}
                         <form
                             onSubmit={addDepartment}
                             className="flex gap-2 mt-3"
@@ -349,7 +429,6 @@ const DepartmentDesignation = () => {
                             </button>
                         </form>
 
-                        {/* Department Table */}
                         <div className="overflow-x-auto mt-4">
                             {loading ? (
                                 <div className="flex justify-center py-5">
@@ -372,9 +451,27 @@ const DepartmentDesignation = () => {
                                     <tbody>
                                         {departments.map((department) => (
                                             <tr key={department._id}>
-
-                                                <td className="font-medium">
-                                                    {department.name}
+                                                <td>
+                                                    {editingDepartment ===
+                                                    department._id ? (
+                                                        <input
+                                                            type="text"
+                                                            value={
+                                                                editDepartmentName
+                                                            }
+                                                            onChange={(e) =>
+                                                                setEditDepartmentName(
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            className="input input-bordered input-sm w-full min-w-[150px]"
+                                                        />
+                                                    ) : (
+                                                        <span className="font-medium">
+                                                            {department.name}
+                                                        </span>
+                                                    )}
                                                 </td>
 
                                                 <td>
@@ -391,38 +488,74 @@ const DepartmentDesignation = () => {
                                                 </td>
 
                                                 <td>
-                                                    <div className="flex gap-2">
+                                                    {editingDepartment ===
+                                                    department._id ? (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    saveDepartmentEdit(
+                                                                        department._id
+                                                                    )
+                                                                }
+                                                                className="btn btn-xs btn-success"
+                                                            >
+                                                                Save
+                                                            </button>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                toggleDepartment(
-                                                                    department
-                                                                )
-                                                            }
-                                                            className="btn btn-xs btn-warning"
-                                                        >
-                                                            {department.status ===
-                                                            "active"
-                                                                ? "Disable"
-                                                                : "Enable"}
-                                                        </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={
+                                                                    cancelDepartmentEdit
+                                                                }
+                                                                className="btn btn-xs btn-ghost"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    startDepartmentEdit(
+                                                                        department
+                                                                    )
+                                                                }
+                                                                className="btn btn-xs btn-info"
+                                                            >
+                                                                Edit
+                                                            </button>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                deleteDepartment(
-                                                                    department._id
-                                                                )
-                                                            }
-                                                            className="btn btn-xs btn-error"
-                                                        >
-                                                            Delete
-                                                        </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    toggleDepartment(
+                                                                        department
+                                                                    )
+                                                                }
+                                                                className="btn btn-xs btn-warning"
+                                                            >
+                                                                {department.status ===
+                                                                "active"
+                                                                    ? "Disable"
+                                                                    : "Enable"}
+                                                            </button>
 
-                                                    </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    deleteDepartment(
+                                                                        department._id
+                                                                    )
+                                                                }
+                                                                className="btn btn-xs btn-error"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </td>
-
                                             </tr>
                                         ))}
                                     </tbody>
@@ -432,20 +565,15 @@ const DepartmentDesignation = () => {
                     </div>
                 </div>
 
-                {/* =========================
-                    DESIGNATIONS
-                ========================= */}
                 <div className="card bg-base-100 border">
                     <div className="card-body p-4 sm:p-5">
-
                         <h2 className="card-title text-base sm:text-lg">
                             Designations
                         </h2>
 
-                        {/* Add Designation */}
                         <form
                             onSubmit={addDesignation}
-                            className="flex gap-2 mt-3"
+                            className="grid grid-cols-1 sm:grid-cols-[1fr_130px_auto] gap-2 mt-3"
                         >
                             <input
                                 type="text"
@@ -457,6 +585,17 @@ const DepartmentDesignation = () => {
                                 className="input input-bordered w-full"
                             />
 
+                            <input
+                                type="number"
+                                min="1"
+                                value={designationMealRate}
+                                onChange={(e) =>
+                                    setDesignationMealRate(e.target.value)
+                                }
+                                placeholder="Meal rate"
+                                className="input input-bordered w-full"
+                            />
+
                             <button
                                 type="submit"
                                 className="btn btn-primary"
@@ -465,7 +604,6 @@ const DepartmentDesignation = () => {
                             </button>
                         </form>
 
-                        {/* Designation Table */}
                         <div className="overflow-x-auto mt-4">
                             {loading ? (
                                 <div className="flex justify-center py-5">
@@ -480,6 +618,7 @@ const DepartmentDesignation = () => {
                                     <thead>
                                         <tr>
                                             <th>Name</th>
+                                            <th>Meal Rate</th>
                                             <th>Status</th>
                                             <th>Action</th>
                                         </tr>
@@ -488,9 +627,53 @@ const DepartmentDesignation = () => {
                                     <tbody>
                                         {designations.map((designation) => (
                                             <tr key={designation._id}>
+                                                <td>
+                                                    {editingDesignation ===
+                                                    designation._id ? (
+                                                        <input
+                                                            type="text"
+                                                            value={
+                                                                editDesignationName
+                                                            }
+                                                            onChange={(e) =>
+                                                                setEditDesignationName(
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            className="input input-bordered input-sm w-full min-w-[130px]"
+                                                        />
+                                                    ) : (
+                                                        <span className="font-medium">
+                                                            {designation.name}
+                                                        </span>
+                                                    )}
+                                                </td>
 
-                                                <td className="font-medium">
-                                                    {designation.name}
+                                                <td>
+                                                    {editingDesignation ===
+                                                    designation._id ? (
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            value={
+                                                                editDesignationMealRate
+                                                            }
+                                                            onChange={(e) =>
+                                                                setEditDesignationMealRate(
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
+                                                            className="input input-bordered input-sm w-24"
+                                                        />
+                                                    ) : (
+                                                        <span className="font-medium">
+                                                            ৳
+                                                            {designation.mealRate ||
+                                                                0}
+                                                        </span>
+                                                    )}
                                                 </td>
 
                                                 <td>
@@ -507,38 +690,74 @@ const DepartmentDesignation = () => {
                                                 </td>
 
                                                 <td>
-                                                    <div className="flex gap-2">
+                                                    {editingDesignation ===
+                                                    designation._id ? (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    saveDesignationEdit(
+                                                                        designation._id
+                                                                    )
+                                                                }
+                                                                className="btn btn-xs btn-success"
+                                                            >
+                                                                Save
+                                                            </button>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                toggleDesignation(
-                                                                    designation
-                                                                )
-                                                            }
-                                                            className="btn btn-xs btn-warning"
-                                                        >
-                                                            {designation.status ===
-                                                            "active"
-                                                                ? "Disable"
-                                                                : "Enable"}
-                                                        </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={
+                                                                    cancelDesignationEdit
+                                                                }
+                                                                className="btn btn-xs btn-ghost"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    startDesignationEdit(
+                                                                        designation
+                                                                    )
+                                                                }
+                                                                className="btn btn-xs btn-info"
+                                                            >
+                                                                Edit
+                                                            </button>
 
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                deleteDesignation(
-                                                                    designation._id
-                                                                )
-                                                            }
-                                                            className="btn btn-xs btn-error"
-                                                        >
-                                                            Delete
-                                                        </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    toggleDesignation(
+                                                                        designation
+                                                                    )
+                                                                }
+                                                                className="btn btn-xs btn-warning"
+                                                            >
+                                                                {designation.status ===
+                                                                "active"
+                                                                    ? "Disable"
+                                                                    : "Enable"}
+                                                            </button>
 
-                                                    </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    deleteDesignation(
+                                                                        designation._id
+                                                                    )
+                                                                }
+                                                                className="btn btn-xs btn-error"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </td>
-
                                             </tr>
                                         ))}
                                     </tbody>
@@ -547,7 +766,6 @@ const DepartmentDesignation = () => {
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     );
