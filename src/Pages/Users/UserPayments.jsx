@@ -1,52 +1,74 @@
 import React, { useContext, useEffect, useState } from "react";
-import Swal from "sweetalert2";
 import { AuthContext } from "../../Providers/AuthProviders";
 
-const UserPayments = () => {
-    const { user } = useContext(AuthContext);
+const API_URL = "http://localhost:5000";
 
+const UserPayments = () => {
+    const { user, loading: authLoading } = useContext(AuthContext);
     const [payments, setPayments] = useState([]);
     const [totalPaid, setTotalPaid] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    // Logged-in user's email
+    const userEmail = user?.email;
+
+    const loadPayments = async () => {
+        if (!userEmail) {
+            setPayments([]);
+            setTotalPaid(0);
+            setLoading(false);
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            console.log("Logged-in user email:", userEmail);
+
+            const response = await fetch(
+                `${API_URL}/payments/${encodeURIComponent(userEmail)}`
+            );
+
+            console.log("Response status:", response.status);
+
+            const data = await response.json();
+
+            console.log("Payment API response:", data);
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message || "Failed to load payments"
+                );
+            }
+
+            setPayments(data.payments || []);
+            setTotalPaid(data.totalPaid || 0);
+
+        } catch (error) {
+            console.error("Load payments error:", error);
+
+            setPayments([]);
+            setTotalPaid(0);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        if (!user?.email) return;
+        // Firebase এখনও user check করছে
+        if (authLoading) {
+            return;
+        }
 
-        const loadPayments = async () => {
-            try {
-                setLoading(true);
-
-                const response = await fetch(
-                    `${API_URL}/payments/${encodeURIComponent(user.email)}`
-                );
-
-                const data = await response.json();
-
-                if (!response.ok || !data.success) {
-                    throw new Error(
-                        data.message || "Failed to load payments."
-                    );
-                }
-
-                setPayments(data.payments || []);
-                setTotalPaid(Number(data.totalPaid || 0));
-            } catch (error) {
-                console.error(error);
-
-                Swal.fire({
-                    icon: "error",
-                    title: "Failed",
-                    text: error.message || "Failed to load payment history.",
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadPayments();
-    }, [user?.email, API_URL]);
+        // User login করা থাকলে payment load হবে
+        if (user?.email) {
+            loadPayments();
+        } else {
+            setPayments([]);
+            setTotalPaid(0);
+            setLoading(false);
+        }
+    }, [user, authLoading]);
 
     const formatDate = (date) => {
         if (!date) return "-";
@@ -58,78 +80,102 @@ const UserPayments = () => {
         });
     };
 
+    // Firebase loading
+    if (authLoading) {
+        return (
+            <div className="w-full flex justify-center items-center py-20">
+                <span className="loading loading-spinner loading-md"></span>
+            </div>
+        );
+    }
+
+    // User login করা নেই
+    if (!user) {
+        return (
+            <div className="w-full">
+                <div className="mb-5 sm:mb-6">
+                    <h1 className="text-xl sm:text-2xl font-bold">
+                        My Payments
+                    </h1>
+
+                    <p className="text-sm sm:text-base text-base-content/60 mt-1">
+                        View your payment history and total payments.
+                    </p>
+                </div>
+
+                <div className="card bg-base-100 border">
+                    <div className="card-body p-5 sm:p-6">
+                        <div className="alert alert-warning">
+                            <span>
+                                Please login to view your payment history.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="w-full">
+
+            {/* Header */}
             <div className="mb-5 sm:mb-6">
                 <h1 className="text-xl sm:text-2xl font-bold">
-                    Payments
+                    My Payments
                 </h1>
 
                 <p className="text-sm sm:text-base text-base-content/60 mt-1">
                     View your payment history and total payments.
                 </p>
+
+                {/* Logged in user */}
+                <p className="text-sm text-base-content/50 mt-2">
+                    Account:{" "}
+                    <span className="font-medium text-base-content">
+                        {user.email}
+                    </span>
+                </p>
             </div>
 
-            {/* Summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-5 sm:mb-6">
-                <div className="card bg-base-100 border">
-                    <div className="card-body p-4 sm:p-5">
-                        <p className="text-sm text-base-content/60">
-                            Total Paid
-                        </p>
+            {/* Total Paid */}
+            <div className="card bg-base-100 border mb-5">
+                <div className="card-body p-4 sm:p-5">
 
-                        <h2 className="text-2xl sm:text-3xl font-bold text-success">
-                            ৳{totalPaid}
-                        </h2>
+                    <p className="text-sm text-base-content/60">
+                        Total Paid
+                    </p>
 
-                        <p className="text-sm text-base-content/60">
-                            Total amount paid so far
-                        </p>
-                    </div>
-                </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-primary">
+                        ৳{Number(totalPaid || 0).toLocaleString()}
+                    </h2>
 
-                <div className="card bg-base-100 border">
-                    <div className="card-body p-4 sm:p-5">
-                        <p className="text-sm text-base-content/60">
-                            Total Payments
-                        </p>
-
-                        <h2 className="text-2xl sm:text-3xl font-bold">
-                            {payments.length}
-                        </h2>
-
-                        <p className="text-sm text-base-content/60">
-                            Payment transactions
-                        </p>
-                    </div>
                 </div>
             </div>
 
             {/* Payment History */}
             <div className="card bg-base-100 border">
                 <div className="card-body p-4 sm:p-5">
-                    <div className="flex items-center justify-between mb-3">
-                        <h2 className="card-title text-base sm:text-lg">
-                            Payment History
-                        </h2>
-                    </div>
 
-                    {loading ? (
-                        <div className="flex justify-center py-10">
-                            <span className="loading loading-spinner loading-md"></span>
-                        </div>
-                    ) : payments.length === 0 ? (
-                        <div className="text-center py-10">
-                            <p className="text-base-content/60">
+                    <h2 className="card-title text-base sm:text-lg">
+                        Payment History
+                    </h2>
+
+                    <div className="overflow-x-auto mt-3">
+
+                        {loading ? (
+                            <div className="flex justify-center py-8">
+                                <span className="loading loading-spinner loading-md"></span>
+                            </div>
+                        ) : payments.length === 0 ? (
+                            <div className="text-center py-8 text-base-content/50">
                                 No payment history found.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
+                            </div>
+                        ) : (
                             <table className="table">
+
                                 <thead>
                                     <tr>
-                                        <th>#</th>
                                         <th>Date</th>
                                         <th>Amount</th>
                                         <th>Method</th>
@@ -138,41 +184,54 @@ const UserPayments = () => {
                                 </thead>
 
                                 <tbody>
-                                    {payments.map((payment, index) => (
+                                    {payments.map((payment) => (
                                         <tr key={payment._id}>
-                                            <td>{index + 1}</td>
 
+                                            {/* Date */}
                                             <td>
                                                 {formatDate(
-                                                    payment.paymentDate ||
-                                                        payment.date
+                                                    payment.paymentDate
                                                 )}
                                             </td>
 
+                                            {/* Amount */}
                                             <td className="font-semibold">
-                                                ৳{Number(payment.amount || 0)}
+                                                ৳
+                                                {Number(
+                                                    payment.amount || 0
+                                                ).toLocaleString()}
                                             </td>
 
-                                            <td>
-                                                <span className="badge badge-ghost">
-                                                    {payment.paymentMethod ||
-                                                        "Cash"}
-                                                </span>
+                                            {/* Method */}
+                                            <td className="capitalize">
+                                                {payment.paymentMethod || "-"}
                                             </td>
 
+                                            {/* Status */}
                                             <td>
-                                                <span className="badge badge-success">
-                                                    {payment.status || "Paid"}
-                                                </span>
+                                                {payment.status === "paid" ? (
+                                                    <span className="badge badge-success badge-sm">
+                                                        Paid
+                                                    </span>
+                                                ) : (
+                                                    <span className="badge badge-warning badge-sm">
+                                                        {payment.status ||
+                                                            "Pending"}
+                                                    </span>
+                                                )}
                                             </td>
+
                                         </tr>
                                     ))}
                                 </tbody>
+
                             </table>
-                        </div>
-                    )}
+                        )}
+
+                    </div>
                 </div>
             </div>
+
         </div>
     );
 };
