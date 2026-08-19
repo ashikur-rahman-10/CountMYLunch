@@ -274,7 +274,7 @@ const UserDashboard = () => {
                                 : "Today's meal is inactive"}
                         </p>
 
-                        {mealIsOn ? (
+                        {/* {mealIsOn ? (
                             <button
                                 onClick={
                                     handleMealOff
@@ -307,7 +307,7 @@ const UserDashboard = () => {
                                     "Turn On Meal"
                                 )}
                             </button>
-                        )}
+                        )} */}
 
                     </div>
                 </div>

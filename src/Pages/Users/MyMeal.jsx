@@ -4,41 +4,76 @@ import { AuthContext } from "../../Providers/AuthProviders";
 const API_URL = "http://localhost:5000";
 
 const MyMeal = () => {
-    const { user } = useContext(AuthContext);
-
     const [meal, setMeal] = useState(null);
+    
+        const { user, loading: authLoading } = useContext(AuthContext);
+
+    const [isHoliday, setIsHoliday] = useState(false);
+    const [isFriday, setIsFriday] = useState(false);
+    const [holidayName, setHolidayName] = useState("");
+
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
-    const loadTodayMeal = async () => {
-        if (!user?.email) return;
+        // Logged-in user's email
+    const userEmail = user?.email;
 
-        try {
-            setLoading(true);
+ const loadTomorrowMeal = async () => {
+    try {
+        setLoading(true);
 
-            const response = await fetch(
-                `${API_URL}/meals/today/${encodeURIComponent(
-                    user.email
-                )}`
+        const response = await fetch(
+            `${API_URL}/meals/tomorrow/${userEmail}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.message ||
+                    "Failed to load tomorrow's meal."
             );
-
-            const data = await response.json();
-
-            if (data.success) {
-                setMeal(data.meal);
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
         }
-    };
+
+        setMeal(data.meal || null);
+
+        setIsFriday(data.isFriday || false);
+
+        setIsHoliday(data.isHoliday || false);
+
+        setHolidayName(
+            data.holidayName || ""
+        );
+    } catch (error) {
+        console.error(
+            "Load tomorrow's meal error:",
+            error
+        );
+
+        setMeal(null);
+        setIsFriday(false);
+        setIsHoliday(false);
+        setHolidayName("");
+    } finally {
+        setLoading(false);
+    }
+};
+
+useEffect(() => {
+    if (userEmail) {
+        loadTomorrowMeal();
+    }
+}, [userEmail]);
 
     useEffect(() => {
-        loadTodayMeal();
-    }, [user]);
+        loadTomorrowMeal();
+    }, []);
 
-    const handleMealOn = async () => {
+    // =========================
+    // TURN MEAL ON
+    // =========================
+
+    const turnMealOn = async () => {
         try {
             setActionLoading(true);
 
@@ -50,27 +85,62 @@ const MyMeal = () => {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        email: user.email,
+                        email: userEmail,
                     }),
                 }
             );
 
             const data = await response.json();
 
-            if (data.success) {
-                setMeal(data.meal);
-            } else {
-                alert(data.message);
+            if (!response.ok || !data.success) {
+                alert(
+                    data.message ||
+                        "Failed to turn on meal."
+                );
+
+
+                if (data.isHoliday) {
+                    setIsHoliday(true);
+
+                    setIsFriday(
+                        data.isFriday || false
+                    );
+
+                    setHolidayName(
+                        data.holidayName || ""
+                    );
+                }
+
+                return;
             }
+
+            setMeal(data.meal || null);
+
+            alert(
+                "Tomorrow's meal turned ON successfully."
+            );
         } catch (error) {
-            console.error(error);
+            console.error(
+                "Turn meal on error:",
+                error
+            );
+
+            alert(
+                "Something went wrong while turning on meal."
+            );
         } finally {
             setActionLoading(false);
         }
     };
 
-    const handleMealOff = async () => {
-        if (!meal?._id) return;
+    // =========================
+    // TURN MEAL OFF
+    // =========================
+
+    const turnMealOff = async () => {
+        if (!meal?._id) {
+            return;
+        }
 
         try {
             setActionLoading(true);
@@ -84,20 +154,67 @@ const MyMeal = () => {
 
             const data = await response.json();
 
-            if (data.success) {
-                setMeal(data.meal);
+            if (!response.ok || !data.success) {
+                alert(
+                    data.message ||
+                        "Failed to turn off meal."
+                );
+
+                return;
             }
+
+            await loadTomorrowMeal();
+
+            alert(
+                "Tomorrow's meal turned OFF successfully."
+            );
         } catch (error) {
-            console.error(error);
+            console.error(
+                "Turn meal off error:",
+                error
+            );
+
+            alert(
+                "Something went wrong while turning off meal."
+            );
         } finally {
             setActionLoading(false);
         }
     };
 
-    const isMealOn = meal?.status === "on";
+    // =========================
+    // FORMAT DATE
+    // =========================
+
+    const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const formattedDate =
+    tomorrow.toLocaleDateString("en-GB", {
+        weekday: "long",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
+
+    // =========================
+    // LOADING
+    // =========================
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center min-h-[300px]">
+                <span className="loading loading-spinner loading-lg"></span>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full">
+
+            {/* =========================
+                PAGE HEADER
+            ========================= */}
 
             <div className="mb-5 sm:mb-6">
                 <h1 className="text-xl sm:text-2xl font-bold">
@@ -105,159 +222,157 @@ const MyMeal = () => {
                 </h1>
 
                 <p className="text-sm sm:text-base text-base-content/60 mt-1">
-                    Manage your meal for today.
+                    Manage your meal for tomorrow.
                 </p>
             </div>
 
-            {loading ? (
-                <div className="flex justify-center py-20">
-                    <span className="loading loading-spinner loading-lg"></span>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* =========================
+                Tomorrow'S MEAL CARD
+            ========================= */}
 
-                    <div className="card bg-base-100 border">
-                        <div className="card-body">
+            <div className="card bg-base-100 border">
 
-                            <h2 className="card-title">
-                                Today's Lunch
-                            </h2>
+                <div className="card-body p-5 sm:p-6">
 
-                            <div className="mt-4">
+                    {/* Date */}
 
-                                <p className="text-sm text-base-content/60">
-                                    Meal Status
+                    <div className="mb-4">
+                        <p className="text-sm text-base-content/60">
+                            Tomorrow
+                        </p>
+
+                        <h2 className="text-lg sm:text-xl font-semibold">
+                            {formattedDate}
+                        </h2>
+                    </div>
+
+                    {/* =========================
+                        HOLIDAY
+                    ========================= */}
+
+                    {isHoliday ? (
+                        <div className="alert alert-warning">
+
+                            <div>
+                                <h3 className="font-bold">
+                                    Meal Off
+                                </h3>
+
+                                <p className="text-sm">
+                                    {isFriday
+                                        ? "Friday is an automatic holiday. Meal is unavailable Tomorrow."
+                                        : `${holidayName || "Tomorrow"} is a holiday. Meal is unavailable Tomorrow.`}
                                 </p>
-
-                                <h2
-                                    className={`text-4xl font-bold mt-1 ${
-                                        isMealOn
-                                            ? "text-success"
-                                            : "text-error"
-                                    }`}
-                                >
-                                    {isMealOn ? "ON" : "OFF"}
-                                </h2>
-
-                            </div>
-
-                            <div className="divider"></div>
-
-                            <div className="flex justify-between">
-                                <span>
-                                    Meal
-                                </span>
-
-                                <span className="font-semibold">
-                                    Lunch
-                                </span>
-                            </div>
-
-                            <div className="flex justify-between">
-                                <span>
-                                    Meal Rate
-                                </span>
-
-                                <span className="font-semibold">
-                                    ৳{meal?.mealRate || 60}
-                                </span>
-                            </div>
-
-                            <div className="mt-5">
-
-                                {isMealOn ? (
-                                    <button
-                                        onClick={handleMealOff}
-                                        disabled={actionLoading}
-                                        className="btn btn-error w-full"
-                                    >
-                                        {actionLoading ? (
-                                            <span className="loading loading-spinner loading-sm"></span>
-                                        ) : (
-                                            "Turn Off Meal"
-                                        )}
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleMealOn}
-                                        disabled={actionLoading}
-                                        className="btn btn-success w-full"
-                                    >
-                                        {actionLoading ? (
-                                            <span className="loading loading-spinner loading-sm"></span>
-                                        ) : (
-                                            "Turn On Meal"
-                                        )}
-                                    </button>
-                                )}
-
                             </div>
 
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                            {/* =========================
+                                MEAL ON
+                            ========================= */}
 
-                    <div className="card bg-base-100 border">
-                        <div className="card-body">
+                            {meal?.status === "on" ? (
+                                <div className="space-y-4">
 
-                            <h2 className="card-title">
-                                Meal Information
-                            </h2>
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
-                            <div className="space-y-4 mt-4">
+                                        <div>
+                                            <p className="text-sm text-base-content/60">
+                                                Tomorrow's Meal
+                                            </p>
 
-                                <div>
-                                    <p className="text-sm text-base-content/60">
-                                        Date
-                                    </p>
+                                            <h2 className="text-xl font-bold">
+                                                Lunch
+                                            </h2>
+                                        </div>
 
-                                    <p className="font-semibold">
-                                        {new Date().toLocaleDateString(
-                                            "en-GB",
-                                            {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric",
-                                            }
-                                        )}
-                                    </p>
-                                </div>
+                                        <span className="badge badge-success">
+                                            Meal ON
+                                        </span>
 
-                                <div>
-                                    <p className="text-sm text-base-content/60">
-                                        Meal Type
-                                    </p>
+                                    </div>
 
-                                    <p className="font-semibold">
-                                        Lunch
-                                    </p>
-                                </div>
+                                    {/* Meal Rate */}
 
-                                <div>
-                                    <p className="text-sm text-base-content/60">
-                                        Status
-                                    </p>
+                                    <div className="bg-base-200 rounded-lg p-4">
 
-                                    <span
-                                        className={`badge ${
-                                            isMealOn
-                                                ? "badge-success"
-                                                : "badge-error"
-                                        }`}
+                                        <p className="text-sm text-base-content/60">
+                                            Meal Rate
+                                        </p>
+
+                                        <p className="text-2xl font-bold">
+                                            ৳
+                                            {Number(
+                                                meal.mealRate || 0
+                                            )}
+                                        </p>
+
+                                    </div>
+
+                                    {/* Turn OFF */}
+
+                                    <button
+                                        type="button"
+                                        onClick={turnMealOff}
+                                        disabled={actionLoading}
+                                        className="btn btn-error w-full sm:w-auto"
                                     >
-                                        {isMealOn
-                                            ? "Active"
-                                            : "Inactive"}
-                                    </span>
+                                        {actionLoading
+                                            ? "Please wait..."
+                                            : "Turn Meal OFF"}
+                                    </button>
+
                                 </div>
+                            ) : (
+                                /* =========================
+                                    MEAL OFF
+                                ========================= */
 
-                            </div>
+                                <div className="space-y-4">
 
-                        </div>
-                    </div>
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
+                                        <div>
+                                            <p className="text-sm text-base-content/60">
+                                                Tomorrow's Meal
+                                            </p>
+
+                                            <h2 className="text-xl font-bold">
+                                                Lunch
+                                            </h2>
+                                        </div>
+
+                                        <span className="badge badge-error">
+                                            Meal OFF
+                                        </span>
+
+                                    </div>
+
+                                    <p className="text-sm text-base-content/60">
+                                        You have not turned on
+                                        Tomorrow's meal yet.
+                                    </p>
+
+                                    {/* Turn ON */}
+
+                                    <button
+                                        type="button"
+                                        onClick={turnMealOn}
+                                        disabled={actionLoading}
+                                        className="btn btn-primary w-full sm:w-auto"
+                                    >
+                                        {actionLoading
+                                            ? "Please wait..."
+                                            : "Turn Meal ON"}
+                                    </button>
+
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
-            )}
-
+            </div>
         </div>
     );
 };

@@ -3,10 +3,10 @@ import { AuthContext } from "../../Providers/AuthProviders";
 
 const API_URL = "http://localhost:5000";
 
-const UserPayments = () => {
-    const { user, loading: authLoading } = useContext(AuthContext);
+    const UserPayments = () => {
+        const { user, loading: authLoading } = useContext(AuthContext);
     const [payments, setPayments] = useState([]);
-    const [totalPaid, setTotalPaid] = useState(0);
+    const [totalPaid, setTotalPaid] = useState(0);      
     const [loading, setLoading] = useState(true);
 
     // Logged-in user's email
