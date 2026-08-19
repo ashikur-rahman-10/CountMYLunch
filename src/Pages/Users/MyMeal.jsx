@@ -11,19 +11,22 @@ const MyMeal = () => {
     const [isHoliday, setIsHoliday] = useState(false);
     const [isFriday, setIsFriday] = useState(false);
     const [holidayName, setHolidayName] = useState("");
-
+    const [deadlinePassed, setDeadlinePassed] = useState(false);
+const [canChange, setCanChange] = useState(true);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
         // Logged-in user's email
     const userEmail = user?.email;
 
- const loadTomorrowMeal = async () => {
+const loadTomorrowMeal = async () => {
     try {
         setLoading(true);
 
         const response = await fetch(
-            `${API_URL}/meals/tomorrow/${userEmail}`
+            `${API_URL}/meals/tomorrow/${encodeURIComponent(
+                userEmail
+            )}`
         );
 
         const data = await response.json();
@@ -41,8 +44,14 @@ const MyMeal = () => {
 
         setIsHoliday(data.isHoliday || false);
 
-        setHolidayName(
-            data.holidayName || ""
+        setHolidayName(data.holidayName || "");
+
+        setDeadlinePassed(
+            data.deadlinePassed || false
+        );
+
+        setCanChange(
+            data.canChange ?? true
         );
     } catch (error) {
         console.error(
@@ -54,24 +63,19 @@ const MyMeal = () => {
         setIsFriday(false);
         setIsHoliday(false);
         setHolidayName("");
+        setDeadlinePassed(false);
+        setCanChange(false);
     } finally {
         setLoading(false);
     }
 };
-
 useEffect(() => {
     if (userEmail) {
         loadTomorrowMeal();
     }
 }, [userEmail]);
 
-    useEffect(() => {
-        loadTomorrowMeal();
-    }, []);
-
-    // =========================
     // TURN MEAL ON
-    // =========================
 
     const turnMealOn = async () => {
         try {

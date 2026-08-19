@@ -221,32 +221,52 @@ const UserDashboard = () => {
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
 
-                {/* Today's Meal */}
-                <div className="card bg-base-100 border">
-                    <div className="card-body p-4 sm:p-5">
+             {/* Today's Meal */}
+<div className="card bg-base-100 border">
+    <div className="card-body p-5">
 
-                        <p className="text-sm text-base-content/60">
-                            Today's Meal
-                        </p>
+        <div className="flex items-center justify-between">
+            <div>
+                <p className="text-sm text-base-content/60">
+                    Today's Meal
+                </p>
 
-                        <h2 className="text-2xl sm:text-3xl font-bold">
-                            {mealIsOn ? "1" : "0"}
-                        </h2>
+                <h2 className="text-2xl font-bold mt-1">
+                    {mealIsOn
+                        ? "Meal Available"
+                        : "No Meal Today"}
+                </h2>
+            </div>
 
-                        <p
-                            className={`text-sm ${
-                                mealIsOn
-                                    ? "text-success"
-                                    : "text-base-content/60"
-                            }`}
-                        >
-                            {mealIsOn
-                                ? "Meal counted"
-                                : "No meal counted"}
-                        </p>
+            {mealIsOn ? (
+                <span className="badge badge-success h-10 w-fit">
+                    Meal ON
+                </span>
+            ) : (
+                <span className="badge badge-error h-10 w-fit">
+                    Meal OFF
+                </span>
+            )}
+        </div>
 
-                    </div>
-                </div>
+        {mealIsOn && todayMeal ? (
+            <div className="mt-4 bg-base-200 rounded-lg p-4">
+                <p className="text-sm text-base-content/60">
+                    Lunch
+                </p>
+
+                <p className="text-xl font-bold">
+                    ৳{Number(todayMeal.mealRate || 0)}
+                </p>
+            </div>
+        ) : (
+            <p className="text-sm text-base-content/60 mt-3">
+                You don't have a meal scheduled for today.
+            </p>
+        )}
+
+    </div>
+</div>
 
                 {/* Meal Status */}
                 <div className="card bg-base-100 border">
