@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import useAxiosSecure from "../../../Hooks/UseAxiosSecure";
 
 const ManagePayments = () => {
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const axiosSecure = useAxiosSecure();
 
     const [users, setUsers] = useState([]);
     const [payments, setPayments] = useState([]);
@@ -22,14 +23,7 @@ const ManagePayments = () => {
 
     const loadUsers = async () => {
         try {
-            const response = await fetch(`${API_URL}/users`);
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.message || "Failed to load users."
-                );
-            }
+            const { data } = await axiosSecure.get(`/users`);
 
             setUsers(data.users || []);
         } catch (error) {
@@ -38,7 +32,9 @@ const ManagePayments = () => {
             Swal.fire({
                 icon: "error",
                 title: "Failed",
-                text: error.message || "Failed to load users.",
+                text:
+                    error?.response?.data?.message ||
+                    "Failed to load users.",
             });
         }
     };
@@ -47,17 +43,9 @@ const ManagePayments = () => {
         try {
             setLoading(true);
 
-            const response = await fetch(
-                `${API_URL}/admin/payments`
+            const { data } = await axiosSecure.get(
+                `/admin/payments`
             );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.message || "Failed to load payments."
-                );
-            }
 
             setPayments(data.payments || []);
         } catch (error) {
@@ -66,7 +54,9 @@ const ManagePayments = () => {
             Swal.fire({
                 icon: "error",
                 title: "Failed",
-                text: error.message || "Failed to load payments.",
+                text:
+                    error?.response?.data?.message ||
+                    "Failed to load payments.",
             });
         } finally {
             setLoading(false);
@@ -76,6 +66,7 @@ const ManagePayments = () => {
     useEffect(() => {
         loadUsers();
         loadPayments();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleAddPayment = async (e) => {
@@ -100,29 +91,14 @@ const ManagePayments = () => {
         try {
             setSaving(true);
 
-            const response = await fetch(
-                `${API_URL}/admin/payments`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        userEmail: selectedUser,
-                        amount: Number(amount),
-                        paymentDate,
-                        addedBy: "admin",
-                    }),
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.message || "Failed to add payment."
-                );
-            }
+            // addedBy is no longer sent from the client -- the backend
+            // now stamps it from the verified admin's own token so it
+            // can't be spoofed.
+            await axiosSecure.post(`/admin/payments`, {
+                userEmail: selectedUser,
+                amount: Number(amount),
+                paymentDate,
+            });
 
             Swal.fire({
                 icon: "success",
@@ -145,7 +121,9 @@ const ManagePayments = () => {
             Swal.fire({
                 icon: "error",
                 title: "Failed",
-                text: error.message || "Failed to add payment.",
+                text:
+                    error?.response?.data?.message ||
+                    "Failed to add payment.",
             });
         } finally {
             setSaving(false);
@@ -185,27 +163,13 @@ const ManagePayments = () => {
         try {
             setSaving(true);
 
-            const response = await fetch(
-                `${API_URL}/admin/payments/${editingPayment._id}`,
+            await axiosSecure.patch(
+                `/admin/payments/${editingPayment._id}`,
                 {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        amount: Number(editAmount),
-                        paymentDate: editPaymentDate,
-                    }),
+                    amount: Number(editAmount),
+                    paymentDate: editPaymentDate,
                 }
             );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.message || "Failed to update payment."
-                );
-            }
 
             document
                 .getElementById("edit_payment_modal")
@@ -227,7 +191,9 @@ const ManagePayments = () => {
             Swal.fire({
                 icon: "error",
                 title: "Failed",
-                text: error.message || "Failed to update payment.",
+                text:
+                    error?.response?.data?.message ||
+                    "Failed to update payment.",
             });
         } finally {
             setSaving(false);
@@ -247,20 +213,7 @@ const ManagePayments = () => {
         if (!result.isConfirmed) return;
 
         try {
-            const response = await fetch(
-                `${API_URL}/admin/payments/${id}`,
-                {
-                    method: "DELETE",
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.message || "Failed to delete payment."
-                );
-            }
+            await axiosSecure.delete(`/admin/payments/${id}`);
 
             Swal.fire({
                 icon: "success",
@@ -277,7 +230,9 @@ const ManagePayments = () => {
             Swal.fire({
                 icon: "error",
                 title: "Failed",
-                text: error.message || "Failed to delete payment.",
+                text:
+                    error?.response?.data?.message ||
+                    "Failed to delete payment.",
             });
         }
     };

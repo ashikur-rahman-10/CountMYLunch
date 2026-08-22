@@ -4,9 +4,11 @@ import React, {
     useState,
 } from "react";
 import { AuthContext } from "../../Providers/AuthProviders";
+import useAxiosSecure from "../../Hooks/UseAxiosSecure";
 
 const UserDashboard = () => {
     const { user } = useContext(AuthContext);
+    const axiosSecure = useAxiosSecure();
 
     const [dashboard, setDashboard] =
         useState(null);
@@ -28,25 +30,18 @@ const UserDashboard = () => {
             setLoading(true);
             setError("");
 
-            const response = await fetch(
-                `http://localhost:5000/dashboard/${user.email}`
+            const { data } = await axiosSecure.get(
+                `/dashboard/${user.email}`
             );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "Failed to load dashboard."
-                );
-            }
 
             setDashboard(data);
 
         } catch (error) {
             console.error(error);
-            setError(error.message);
+            setError(
+                error?.response?.data?.message ||
+                "Failed to load dashboard."
+            );
         } finally {
             setLoading(false);
         }
@@ -55,6 +50,7 @@ const UserDashboard = () => {
     // Initial dashboard load
     useEffect(() => {
         loadDashboard();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.email]);
 
     // Turn on meal
@@ -63,35 +59,16 @@ const UserDashboard = () => {
             setMealLoading(true);
             setError("");
 
-            const response = await fetch(
-                "http://localhost:5000/meals/on",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-                    },
-                    body: JSON.stringify({
-                        email: user.email,
-                    }),
-                }
-            );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "Failed to turn on meal."
-                );
-            }
+            await axiosSecure.post("/meals/on");
 
             await loadDashboard();
 
         } catch (error) {
             console.error(error);
-            setError(error.message);
+            setError(
+                error?.response?.data?.message ||
+                "Failed to turn on meal."
+            );
         } finally {
             setMealLoading(false);
         }
@@ -107,28 +84,18 @@ const UserDashboard = () => {
             setMealLoading(true);
             setError("");
 
-            const response = await fetch(
-                `http://localhost:5000/meals/off/${dashboard.todayMeal._id}`,
-                {
-                    method: "PATCH",
-                }
+            await axiosSecure.patch(
+                `/meals/off/${dashboard.todayMeal._id}`
             );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "Failed to turn off meal."
-                );
-            }
 
             await loadDashboard();
 
         } catch (error) {
             console.error(error);
-            setError(error.message);
+            setError(
+                error?.response?.data?.message ||
+                "Failed to turn off meal."
+            );
         } finally {
             setMealLoading(false);
         }

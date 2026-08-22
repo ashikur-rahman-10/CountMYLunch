@@ -1,9 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../Providers/AuthProviders";
+import useAxiosSecure from "../../Hooks/UseAxiosSecure";
 
 const AdminRoute = ({ children }) => {
     const { user, loading } = useContext(AuthContext);
+    const axiosSecure = useAxiosSecure();
     const location = useLocation();
 
     const [dbUser, setDbUser] = useState(null);
@@ -15,19 +17,9 @@ const AdminRoute = ({ children }) => {
             return;
         }
 
-        fetch(
-            `http://localhost:5000/users/${encodeURIComponent(
-                user.email
-            )}`
-        )
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error("User not found");
-                }
-
-                return res.json();
-            })
-            .then((data) => {
+        axiosSecure
+            .get(`/users/${encodeURIComponent(user.email)}`)
+            .then(({ data }) => {
                 setDbUser(data.user || data);
             })
             .catch(() => {
@@ -36,6 +28,7 @@ const AdminRoute = ({ children }) => {
             .finally(() => {
                 setUserLoading(false);
             });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.email]);
 
     if (loading || userLoading) {

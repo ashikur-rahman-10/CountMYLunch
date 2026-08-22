@@ -2,10 +2,12 @@ import React, { useContext, useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { AuthContext } from "../Providers/AuthProviders";
+import useAxiosSecure from "../Hooks/UseAxiosSecure";
 
 const DashboardLayout = () => {
     const { user, logOut } = useContext(AuthContext);
     const navigate = useNavigate();
+    const axiosSecure = useAxiosSecure();
 
     const [dbUser, setDbUser] = useState(null);
     const [loadingUser, setLoadingUser] = useState(true);
@@ -19,19 +21,9 @@ const DashboardLayout = () => {
             return;
         }
 
-        fetch(
-            `http://localhost:5000/users/${encodeURIComponent(
-                user.email
-            )}`
-        )
-            .then((res) => {
-                if (!res.ok) {
-                    throw new Error("Failed to load user");
-                }
-
-                return res.json();
-            })
-            .then((data) => {
+        axiosSecure
+            .get(`/users/${encodeURIComponent(user.email)}`)
+            .then(({ data }) => {
                 setDbUser(data.user || data);
             })
             .catch((error) => {
@@ -41,6 +33,7 @@ const DashboardLayout = () => {
             .finally(() => {
                 setLoadingUser(false);
             });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.email]);
 
     const handleLogout = () => {
@@ -102,6 +95,15 @@ const DashboardLayout = () => {
 
             <li>
                 <NavLink
+                    to="/dashboard/deposit"
+                    className={navLinkClass}
+                >
+                    Security Deposit
+                </NavLink>
+            </li>
+
+            <li>
+                <NavLink
                     to="/dashboard/profile"
                     className={navLinkClass}
                 >
@@ -115,6 +117,24 @@ const DashboardLayout = () => {
         <>
             <li className="menu-title mt-4">
                 <span>Admin</span>
+            </li>
+
+            <li>
+                <NavLink
+                    to="/dashboard/admin/dashboard"
+                    className={navLinkClass}
+                >
+                    Admin Dashboard
+                </NavLink>
+            </li>
+
+            <li>
+                <NavLink
+                    to="/dashboard/admin/approvals"
+                    className={navLinkClass}
+                >
+                    Pending Approvals
+                </NavLink>
             </li>
 
             <li>
@@ -141,6 +161,77 @@ const DashboardLayout = () => {
                     className={navLinkClass}
                 >
                     Manage Payments
+                </NavLink>
+            </li>
+
+            <li>
+                <NavLink
+                    to="/dashboard/admin/deposits"
+                    className={navLinkClass}
+                >
+                    Security Deposits
+                </NavLink>
+            </li>
+
+            <li>
+                <NavLink
+                    to="/dashboard/admin/settlement"
+                    className={navLinkClass}
+                >
+                    Final Settlement
+                </NavLink>
+            </li>
+
+            <li>
+                <NavLink
+                    to="/dashboard/admin/holidays"
+                    className={navLinkClass}
+                >
+                    Holiday Management
+                </NavLink>
+            </li>
+
+            <li className="menu-title mt-4">
+                <span>Reports</span>
+            </li>
+
+            <li>
+                <NavLink
+                    to="/dashboard/admin/reports/daily"
+                    className={navLinkClass}
+                >
+                    Daily Report
+                </NavLink>
+            </li>
+
+            <li>
+                <NavLink
+                    to="/dashboard/admin/reports/monthly"
+                    className={navLinkClass}
+                >
+                    Monthly Report
+                </NavLink>
+            </li>
+
+            <li className="menu-title mt-4">
+                <span>System</span>
+            </li>
+
+            <li>
+                <NavLink
+                    to="/dashboard/admin/audit-logs"
+                    className={navLinkClass}
+                >
+                    Audit Logs
+                </NavLink>
+            </li>
+
+            <li>
+                <NavLink
+                    to="/dashboard/admin/settings"
+                    className={navLinkClass}
+                >
+                    Settings
                 </NavLink>
             </li>
         </>

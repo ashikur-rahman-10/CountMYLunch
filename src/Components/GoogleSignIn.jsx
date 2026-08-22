@@ -3,10 +3,12 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
 import { AuthContext } from "../Providers/AuthProviders";
+import useAxiosSecure from "../Hooks/UseAxiosSecure";
 
 const GoogleSignIn = () => {
     const { googleLogin } = useContext(AuthContext);
     const navigate = useNavigate();
+    const axiosSecure = useAxiosSecure();
 
     const handleGoogleLogin = async () => {
         try {
@@ -16,21 +18,12 @@ const GoogleSignIn = () => {
 
             const userInfo = {
                 name: user.displayName,
-                email: user.email,
             };
 
-            const response = await fetch(
-                "http://localhost:5000/users",
-                {
-                    method: "POST",
-                    headers: {
-                        "content-type": "application/json",
-                    },
-                    body: JSON.stringify(userInfo),
-                }
-            );
-
-            const data = await response.json();
+            // Email/uid are taken from the verified Firebase token
+            // server-side, not from this request body -- see
+            // backend/index.js POST /users.
+            const { data } = await axiosSecure.post("/users", userInfo);
 
             console.log("MongoDB response:", data);
 
@@ -49,7 +42,10 @@ const GoogleSignIn = () => {
             Swal.fire({
                 icon: "error",
                 title: "Login Failed",
-                text: error.message,
+                text:
+                    error?.response?.data?.message ||
+                    error.message ||
+                    "Something went wrong.",
             });
         }
     };

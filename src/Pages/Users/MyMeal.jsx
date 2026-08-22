@@ -1,12 +1,12 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../Providers/AuthProviders";
-
-const API_URL = "http://localhost:5000";
+import useAxiosSecure from "../../Hooks/UseAxiosSecure";
 
 const MyMeal = () => {
     const [meal, setMeal] = useState(null);
     
         const { user, loading: authLoading } = useContext(AuthContext);
+    const axiosSecure = useAxiosSecure();
 
     const [isHoliday, setIsHoliday] = useState(false);
     const [isFriday, setIsFriday] = useState(false);
@@ -23,20 +23,9 @@ const loadTomorrowMeal = async () => {
     try {
         setLoading(true);
 
-        const response = await fetch(
-            `${API_URL}/meals/tomorrow/${encodeURIComponent(
-                userEmail
-            )}`
+        const { data } = await axiosSecure.get(
+            `/meals/tomorrow/${encodeURIComponent(userEmail)}`
         );
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-            throw new Error(
-                data.message ||
-                    "Failed to load tomorrow's meal."
-            );
-        }
 
         setMeal(data.meal || null);
 
@@ -81,42 +70,7 @@ useEffect(() => {
         try {
             setActionLoading(true);
 
-            const response = await fetch(
-                `${API_URL}/meals/on`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        email: userEmail,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                alert(
-                    data.message ||
-                        "Failed to turn on meal."
-                );
-
-
-                if (data.isHoliday) {
-                    setIsHoliday(true);
-
-                    setIsFriday(
-                        data.isFriday || false
-                    );
-
-                    setHolidayName(
-                        data.holidayName || ""
-                    );
-                }
-
-                return;
-            }
+            const { data } = await axiosSecure.post("/meals/on");
 
             setMeal(data.meal || null);
 
@@ -129,9 +83,18 @@ useEffect(() => {
                 error
             );
 
+            const data = error?.response?.data;
+
             alert(
-                "Something went wrong while turning on meal."
+                data?.message ||
+                    "Something went wrong while turning on meal."
             );
+
+            if (data?.isHoliday) {
+                setIsHoliday(true);
+                setIsFriday(data.isFriday || false);
+                setHolidayName(data.holidayName || "");
+            }
         } finally {
             setActionLoading(false);
         }
@@ -149,23 +112,7 @@ useEffect(() => {
         try {
             setActionLoading(true);
 
-            const response = await fetch(
-                `${API_URL}/meals/off/${meal._id}`,
-                {
-                    method: "PATCH",
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                alert(
-                    data.message ||
-                        "Failed to turn off meal."
-                );
-
-                return;
-            }
+            await axiosSecure.patch(`/meals/off/${meal._id}`);
 
             await loadTomorrowMeal();
 
@@ -179,7 +126,8 @@ useEffect(() => {
             );
 
             alert(
-                "Something went wrong while turning off meal."
+                error?.response?.data?.message ||
+                    "Something went wrong while turning off meal."
             );
         } finally {
             setActionLoading(false);

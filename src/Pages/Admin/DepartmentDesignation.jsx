@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-
-const API_URL = "http://localhost:5000";
+import useAxiosSecure from "../../Hooks/UseAxiosSecure";
 
 const DepartmentDesignation = () => {
+    const axiosSecure = useAxiosSecure();
     const [departments, setDepartments] = useState([]);
     const [designations, setDesignations] = useState([]);
 
@@ -27,24 +27,12 @@ const DepartmentDesignation = () => {
 
             const [departmentResponse, designationResponse] =
                 await Promise.all([
-                    fetch(`${API_URL}/departments/all`),
-                    fetch(`${API_URL}/designations/all`),
+                    axiosSecure.get(`/departments/all`),
+                    axiosSecure.get(`/designations/all`),
                 ]);
 
-            if (!departmentResponse.ok) {
-                throw new Error(
-                    `Department API error: ${departmentResponse.status}`
-                );
-            }
-
-            if (!designationResponse.ok) {
-                throw new Error(
-                    `Designation API error: ${designationResponse.status}`
-                );
-            }
-
-            const departmentData = await departmentResponse.json();
-            const designationData = await designationResponse.json();
+            const departmentData = departmentResponse.data;
+            const designationData = designationResponse.data;
 
             if (Array.isArray(departmentData)) {
                 setDepartments(departmentData);
@@ -77,6 +65,7 @@ const DepartmentDesignation = () => {
 
     useEffect(() => {
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const addDepartment = async (e) => {
@@ -89,28 +78,16 @@ const DepartmentDesignation = () => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/departments`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    name,
-                }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                alert(data.message || "Failed to add department");
-                return;
-            }
+            await axiosSecure.post(`/departments`, { name });
 
             setDepartmentName("");
             await loadData();
         } catch (error) {
             console.error("Add department error:", error);
-            alert("Something went wrong while adding department.");
+            alert(
+                error?.response?.data?.message ||
+                    "Something went wrong while adding department."
+            );
         }
     };
 
@@ -131,23 +108,10 @@ const DepartmentDesignation = () => {
         }
 
         try {
-            const response = await fetch(`${API_URL}/designations`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    name,
-                    mealRate,
-                }),
+            await axiosSecure.post(`/designations`, {
+                name,
+                mealRate,
             });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                alert(data.message || "Failed to add designation");
-                return;
-            }
 
             setDesignationName("");
             setDesignationMealRate("");
@@ -155,7 +119,10 @@ const DepartmentDesignation = () => {
             await loadData();
         } catch (error) {
             console.error("Add designation error:", error);
-            alert("Something went wrong while adding designation.");
+            alert(
+                error?.response?.data?.message ||
+                    "Something went wrong while adding designation."
+            );
         }
     };
 
@@ -164,30 +131,18 @@ const DepartmentDesignation = () => {
             const newStatus =
                 department.status === "active" ? "inactive" : "active";
 
-            const response = await fetch(
-                `${API_URL}/departments/${department._id}`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        status: newStatus,
-                    }),
-                }
+            await axiosSecure.patch(
+                `/departments/${department._id}`,
+                { status: newStatus }
             );
-
-            const data = await response.json();
-
-            if (!response.ok || data.success === false) {
-                alert(data.message || "Failed to update department");
-                return;
-            }
 
             await loadData();
         } catch (error) {
             console.error("Toggle department error:", error);
-            alert("Something went wrong while updating department.");
+            alert(
+                error?.response?.data?.message ||
+                    "Something went wrong while updating department."
+            );
         }
     };
 
@@ -196,30 +151,18 @@ const DepartmentDesignation = () => {
             const newStatus =
                 designation.status === "active" ? "inactive" : "active";
 
-            const response = await fetch(
-                `${API_URL}/designations/${designation._id}`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        status: newStatus,
-                    }),
-                }
+            await axiosSecure.patch(
+                `/designations/${designation._id}`,
+                { status: newStatus }
             );
-
-            const data = await response.json();
-
-            if (!response.ok || data.success === false) {
-                alert(data.message || "Failed to update designation");
-                return;
-            }
 
             await loadData();
         } catch (error) {
             console.error("Toggle designation error:", error);
-            alert("Something went wrong while updating designation.");
+            alert(
+                error?.response?.data?.message ||
+                    "Something went wrong while updating designation."
+            );
         }
     };
 
@@ -242,31 +185,16 @@ const DepartmentDesignation = () => {
         }
 
         try {
-            const response = await fetch(
-                `${API_URL}/departments/${id}`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        name,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || data.success === false) {
-                alert(data.message || "Failed to update department");
-                return;
-            }
+            await axiosSecure.patch(`/departments/${id}`, { name });
 
             cancelDepartmentEdit();
             await loadData();
         } catch (error) {
             console.error("Edit department error:", error);
-            alert("Something went wrong while updating department.");
+            alert(
+                error?.response?.data?.message ||
+                    "Something went wrong while updating department."
+            );
         }
     };
 
@@ -297,32 +225,19 @@ const DepartmentDesignation = () => {
         }
 
         try {
-            const response = await fetch(
-                `${API_URL}/designations/${id}`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        name,
-                        mealRate,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || data.success === false) {
-                alert(data.message || "Failed to update designation");
-                return;
-            }
+            await axiosSecure.patch(`/designations/${id}`, {
+                name,
+                mealRate,
+            });
 
             cancelDesignationEdit();
             await loadData();
         } catch (error) {
             console.error("Edit designation error:", error);
-            alert("Something went wrong while updating designation.");
+            alert(
+                error?.response?.data?.message ||
+                    "Something went wrong while updating designation."
+            );
         }
     };
 
@@ -336,24 +251,15 @@ const DepartmentDesignation = () => {
         }
 
         try {
-            const response = await fetch(
-                `${API_URL}/departments/${id}`,
-                {
-                    method: "DELETE",
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || data.success === false) {
-                alert(data.message || "Failed to delete department");
-                return;
-            }
+            await axiosSecure.delete(`/departments/${id}`);
 
             await loadData();
         } catch (error) {
             console.error("Delete department error:", error);
-            alert("Something went wrong while deleting department.");
+            alert(
+                error?.response?.data?.message ||
+                    "Something went wrong while deleting department."
+            );
         }
     };
 
@@ -367,24 +273,15 @@ const DepartmentDesignation = () => {
         }
 
         try {
-            const response = await fetch(
-                `${API_URL}/designations/${id}`,
-                {
-                    method: "DELETE",
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok || data.success === false) {
-                alert(data.message || "Failed to delete designation");
-                return;
-            }
+            await axiosSecure.delete(`/designations/${id}`);
 
             await loadData();
         } catch (error) {
             console.error("Delete designation error:", error);
-            alert("Something went wrong while deleting designation.");
+            alert(
+                error?.response?.data?.message ||
+                    "Something went wrong while deleting designation."
+            );
         }
     };
 

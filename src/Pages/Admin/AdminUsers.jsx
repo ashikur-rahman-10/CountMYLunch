@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-
-const API_URL = "http://localhost:5000";
+import useAxiosSecure from "../../Hooks/UseAxiosSecure";
 
 const AdminUsers = () => {
+    const axiosSecure = useAxiosSecure();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -15,8 +15,7 @@ const AdminUsers = () => {
         try {
             setLoading(true);
 
-            const response = await fetch(`${API_URL}/users`);
-            const data = await response.json();
+            const { data } = await axiosSecure.get("/users");
 
             if (data.success) {
                 setUsers(data.users || []);
@@ -30,33 +29,20 @@ const AdminUsers = () => {
 
     useEffect(() => {
         loadUsers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const updateRole = async (id, role) => {
         try {
-            const response = await fetch(
-                `${API_URL}/users/role/${id}`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        role,
-                    }),
-                }
-            );
+            await axiosSecure.patch(`/users/role/${id}`, { role });
 
-            const data = await response.json();
-
-            if (data.success) {
-                loadUsers();
-            } else {
-                alert(data.message || "Failed to update role.");
-            }
+            loadUsers();
         } catch (error) {
             console.error("Role update error:", error);
-            alert("Failed to update user role.");
+            alert(
+                error?.response?.data?.message ||
+                    "Failed to update user role."
+            );
         }
     };
 

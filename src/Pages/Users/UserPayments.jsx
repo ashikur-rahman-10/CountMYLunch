@@ -1,10 +1,10 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../Providers/AuthProviders";
-
-const API_URL = "http://localhost:5000";
+import useAxiosSecure from "../../Hooks/UseAxiosSecure";
 
     const UserPayments = () => {
         const { user, loading: authLoading } = useContext(AuthContext);
+    const axiosSecure = useAxiosSecure();
     const [payments, setPayments] = useState([]);
     const [totalPaid, setTotalPaid] = useState(0);      
     const [loading, setLoading] = useState(true);
@@ -23,23 +23,9 @@ const API_URL = "http://localhost:5000";
         try {
             setLoading(true);
 
-            console.log("Logged-in user email:", userEmail);
-
-            const response = await fetch(
-                `${API_URL}/payments/${encodeURIComponent(userEmail)}`
+            const { data } = await axiosSecure.get(
+                `/payments/${encodeURIComponent(userEmail)}`
             );
-
-            console.log("Response status:", response.status);
-
-            const data = await response.json();
-
-            console.log("Payment API response:", data);
-
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.message || "Failed to load payments"
-                );
-            }
 
             setPayments(data.payments || []);
             setTotalPaid(data.totalPaid || 0);

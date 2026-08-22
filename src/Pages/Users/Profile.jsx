@@ -5,11 +5,13 @@ import React, {
 } from "react";
 
 import { AuthContext } from "../../Providers/AuthProviders";
+import useAxiosSecure from "../../Hooks/UseAxiosSecure";
 
 
 const Profile = () => {
 
     const { user } = useContext(AuthContext);
+    const axiosSecure = useAxiosSecure();
 
 
     // States
@@ -56,22 +58,12 @@ const Profile = () => {
                 // Get User Profile
         
 
-                const userResponse = await fetch(
-                    `http://localhost:5000/users/${user.email}`
+                const { data: userResponseData } = await axiosSecure.get(
+                    `/users/${user.email}`
                 );
 
-
-                if (!userResponse.ok) {
-
-                    throw new Error(
-                        "Failed to load user profile"
-                    );
-
-                }
-
-
-                const userData =
-                    await userResponse.json();
+                // Backend returns { success, user }.
+                const userData = userResponseData.user;
 
 
                 setProfile(userData);
@@ -108,24 +100,8 @@ const Profile = () => {
                 // Get Departments
         
 
-                const departmentResponse =
-                    await fetch(
-                        "http://localhost:5000/departments"
-                    );
-
-
-                if (!departmentResponse.ok) {
-
-                    throw new Error(
-                        "Failed to load departments"
-                    );
-
-                }
-
-
-                const departmentData =
-                    await departmentResponse.json();
-
+                const { data: departmentData } =
+                    await axiosSecure.get("/departments");
 
                 setDepartments(
                     departmentData
@@ -136,24 +112,8 @@ const Profile = () => {
                 // Get Designations
         
 
-                const designationResponse =
-                    await fetch(
-                        "http://localhost:5000/designations"
-                    );
-
-
-                if (!designationResponse.ok) {
-
-                    throw new Error(
-                        "Failed to load designations"
-                    );
-
-                }
-
-
-                const designationData =
-                    await designationResponse.json();
-
+                const { data: designationData } =
+                    await axiosSecure.get("/designations");
 
                 setDesignations(
                     designationData
@@ -165,7 +125,7 @@ const Profile = () => {
                 console.error(error);
 
                 setError(
-                    error.message ||
+                    error?.response?.data?.message ||
                     "Something went wrong while loading profile."
                 );
 
@@ -254,36 +214,10 @@ const Profile = () => {
             };
 
 
-            const response = await fetch(
-                `http://localhost:5000/users/${user.email}`,
-                {
-                    method: "PATCH",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-                    },
-
-                    body:
-                        JSON.stringify(
-                            updatedData
-                        ),
-                }
+            await axiosSecure.patch(
+                `/users/${user.email}`,
+                updatedData
             );
-
-
-            const data =
-                await response.json();
-
-
-            if (!response.ok) {
-
-                throw new Error(
-                    data.message ||
-                    "Failed to update profile."
-                );
-
-            }
 
 
     
@@ -311,7 +245,7 @@ const Profile = () => {
             console.error(error);
 
             setError(
-                error.message ||
+                error?.response?.data?.message ||
                 "Failed to update profile."
             );
 
